@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  # MongoDB Service
+  mongodb:
+    image: mongo:5.0
+    container_name: multicloud-mongodb
+    restart: always
+    volumes:
+      - mongodb_data:/data/db
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USERNAME:-admin}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD:-password}
+    networks:
+      - multicloud-network
+
+  # Backend API Service
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: multicloud-api
+    restart: always
+    depends_on:
+      - mongodb
+    ports:
+      - "${PORT:-5000}:5000"
+    environment:
+      - NODE_ENV=production
+      - PORT=5000
+      - MONGODB_URI=mongodb://${MONGO_ROOT_USERNAME:-admin}:${MONGO_ROOT_PASSWORD:-password}@mongodb:27017/multicloud-assistant?authSource=admin
+      # Cloud provider credentials
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - AZURE_SUBSCRIPTION_ID=${AZURE_SUBSCRIPTION_ID}
+      - AZURE_TENANT_ID=${AZURE_TENANT_ID}
+      - AZURE_CLIENT_ID=${AZURE_CLIENT_ID}
+      - AZURE_CLIENT_SECRET=${AZURE_CLIENT_SECRET}
+      - GCP_PROJECT_ID=${GCP_PROJECT_ID}
+      - GCP_KEY_FILENAME=${GCP_KEY_FILENAME}
+      # Authentication
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRE=${JWT_EXPIRE:-1d}
+      - API_KEY=${API_KEY}
+      # Email
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_SECURE=${SMTP_SECURE:-false}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - FROM_NAME=${FROM_NAME:-Multi-Cloud Assistant}
+      - FROM_EMAIL=${FROM_EMAIL}
+      # CloudCostIQ
+      - CLOUDCOSTIQ_API_KEY=${CLOUDCOSTIQ_API_KEY}
+      - CLOUDCOSTIQ_ORG_ID=${CLOUDCOSTIQ_ORG_ID}
+      - CLOUDCOSTIQ_API_URL=${CLOUDCOSTIQ_API_URL:-https://api.cloudcostiq.com/v1}
+    volumes:
+      - ./logs:/usr/src/app/logs
+      - ${GCP_KEY_FILENAME:-./gcp-key.json}:/usr/src/app/${GCP_KEY_FILENAME:-gcp-key.json}
+    networks:
+      - multicloud-network
+
+networks:
+  multicloud-network:
+    driver: bridge
+
+volumes:
+  mongodb_data:
