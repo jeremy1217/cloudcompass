@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CloudCompass - Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+        }
+        .navbar {
+            background-color: #333;
+            color: white;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .navbar h1 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+        .navbar button {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+        }
+        .card {
+            background-color: white;
+            border-radius: 8px;
+            padding: 1rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .card h2 {
+            margin-top: 0;
+            color: #333;
+        }
+        .error-message {
+            color: red;
+            text-align: center;
+            margin: 1rem 0;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <h1>CloudCompass Dashboard</h1>
+        <button id="logoutBtn">Logout</button>
+    </nav>
+
+    <div class="container">
+        <div id="errorMessage" class="error-message" style="display: none;"></div>
+        
+        <div class="dashboard-grid">
+            <div class="card">
+                <h2>User Management</h2>
+                <p>Manage users and their roles</p>
+                <button onclick="window.location.href='/admin/users'">Go to User Management</button>
+            </div>
+            <div class="card">
+                <h2>System Status</h2>
+                <p>View system health and performance</p>
+                <button onclick="window.location.href='/admin/status'">View Status</button>
+            </div>
+            <div class="card">
+                <h2>Settings</h2>
+                <p>Configure system settings</p>
+                <button onclick="window.location.href='/admin/settings'">Go to Settings</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Check if user is logged in
+        const token = localStorage.getItem('token');
+        if (!token) {
+            window.location.href = '/login';
+        }
+
+        // Logout functionality
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            localStorage.removeItem('token');
+            window.location.href = '/login';
+        });
+
+        // Verify token and get user info
+        async function verifyToken() {
+            try {
+                const response = await fetch('/api/auth/me', {
+                    headers: {
+                        'x-auth-token': token
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Invalid token');
+                }
+                
+                const user = await response.json();
+                console.log('Logged in as:', user);
+            } catch (error) {
+                console.error('Token verification error:', error);
+                localStorage.removeItem('token');
+                window.location.href = '/login';
+            }
+        }
+
+        // Verify token on page load
+        verifyToken();
+    </script>
+</body>
+</html> 

@@ -1,7 +1,7 @@
 // src/routes/auth.js
 const express = require('express');
 const router = express.Router();
-const User = require('../models/User');
+const User = require('../database/models/User');
 const { auth, admin } = require('../middleware/auth');
 const crypto = require('crypto');
 const sendEmail = require('../utils/sendEmail');
@@ -21,12 +21,16 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ message: 'User already exists' });
     }
 
-    // Create user (only admins can create admins)
+    // Check if this is the first user (will be admin)
+    const userCount = await User.countDocuments();
+    const isFirstUser = userCount === 0;
+
+    // Create user
     user = new User({
       name,
       email,
       password,
-      role: role === 'admin' ? 'user' : role // Default to user unless admin creates
+      role: isFirstUser ? 'admin' : (role === 'admin' ? 'user' : role) // First user becomes admin
     });
 
     await user.save();

@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CloudCompass - Settings</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+        }
+        .navbar {
+            background-color: #333;
+            color: white;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .navbar h1 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+        .navbar-buttons {
+            display: flex;
+            gap: 1rem;
+        }
+        .navbar button {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+        }
+        .card {
+            background-color: white;
+            border-radius: 8px;
+            padding: 1rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .card h2 {
+            margin-top: 0;
+            color: #333;
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+        }
+        input[type="text"],
+        input[type="password"],
+        select {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .save-btn {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .error-message {
+            color: red;
+            text-align: center;
+            margin: 1rem 0;
+        }
+        .success-message {
+            color: #28a745;
+            text-align: center;
+            margin: 1rem 0;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <h1>Settings</h1>
+        <div class="navbar-buttons">
+            <button onclick="window.location.href='/dashboard'">Back to Dashboard</button>
+            <button id="logoutBtn">Logout</button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div id="errorMessage" class="error-message" style="display: none;"></div>
+        <div id="successMessage" class="success-message" style="display: none;"></div>
+        
+        <div class="settings-grid">
+            <div class="card">
+                <h2>System Settings</h2>
+                <form id="systemSettingsForm">
+                    <div class="form-group">
+                        <label for="apiKey">API Key</label>
+                        <input type="password" id="apiKey" name="apiKey" placeholder="Enter API key">
+                    </div>
+                    <div class="form-group">
+                        <label for="logLevel">Log Level</label>
+                        <select id="logLevel" name="logLevel">
+                            <option value="debug">Debug</option>
+                            <option value="info">Info</option>
+                            <option value="warn">Warning</option>
+                            <option value="error">Error</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="save-btn">Save System Settings</button>
+                </form>
+            </div>
+            <div class="card">
+                <h2>Email Settings</h2>
+                <form id="emailSettingsForm">
+                    <div class="form-group">
+                        <label for="smtpHost">SMTP Host</label>
+                        <input type="text" id="smtpHost" name="smtpHost" placeholder="Enter SMTP host">
+                    </div>
+                    <div class="form-group">
+                        <label for="smtpPort">SMTP Port</label>
+                        <input type="text" id="smtpPort" name="smtpPort" placeholder="Enter SMTP port">
+                    </div>
+                    <div class="form-group">
+                        <label for="smtpUser">SMTP Username</label>
+                        <input type="text" id="smtpUser" name="smtpUser" placeholder="Enter SMTP username">
+                    </div>
+                    <div class="form-group">
+                        <label for="smtpPass">SMTP Password</label>
+                        <input type="password" id="smtpPass" name="smtpPass" placeholder="Enter SMTP password">
+                    </div>
+                    <button type="submit" class="save-btn">Save Email Settings</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Check if user is logged in
+        const token = localStorage.getItem('token');
+        if (!token) {
+            window.location.href = '/login';
+        }
+
+        // Logout functionality
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            localStorage.removeItem('token');
+            window.location.href = '/login';
+        });
+
+        // Verify token and get user info
+        async function verifyToken() {
+            try {
+                const response = await fetch('/api/auth/me', {
+                    headers: {
+                        'x-auth-token': token
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Invalid token');
+                }
+                
+                const user = await response.json();
+                if (user.role !== 'admin') {
+                    window.location.href = '/dashboard';
+                }
+            } catch (error) {
+                console.error('Token verification error:', error);
+                localStorage.removeItem('token');
+                window.location.href = '/login';
+            }
+        }
+
+        // Save system settings
+        document.getElementById('systemSettingsForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            try {
+                const response = await fetch('/api/admin/settings/system', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-auth-token': token
+                    },
+                    body: JSON.stringify({
+                        apiKey: document.getElementById('apiKey').value,
+                        logLevel: document.getElementById('logLevel').value
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to save system settings');
+                }
+                
+                document.getElementById('successMessage').textContent = 'System settings saved successfully';
+                document.getElementById('successMessage').style.display = 'block';
+                setTimeout(() => {
+                    document.getElementById('successMessage').style.display = 'none';
+                }, 3000);
+            } catch (error) {
+                console.error('Error saving system settings:', error);
+                document.getElementById('errorMessage').textContent = 'Failed to save system settings';
+                document.getElementById('errorMessage').style.display = 'block';
+            }
+        });
+
+        // Save email settings
+        document.getElementById('emailSettingsForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            try {
+                const response = await fetch('/api/admin/settings/email', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-auth-token': token
+                    },
+                    body: JSON.stringify({
+                        smtpHost: document.getElementById('smtpHost').value,
+                        smtpPort: document.getElementById('smtpPort').value,
+                        smtpUser: document.getElementById('smtpUser').value,
+                        smtpPass: document.getElementById('smtpPass').value
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to save email settings');
+                }
+                
+                document.getElementById('successMessage').textContent = 'Email settings saved successfully';
+                document.getElementById('successMessage').style.display = 'block';
+                setTimeout(() => {
+                    document.getElementById('successMessage').style.display = 'none';
+                }, 3000);
+            } catch (error) {
+                console.error('Error saving email settings:', error);
+                document.getElementById('errorMessage').textContent = 'Failed to save email settings';
+                document.getElementById('errorMessage').style.display = 'block';
+            }
+        });
+
+        // Initialize the page
+        verifyToken();
+    </script>
+</body>
+</html> 

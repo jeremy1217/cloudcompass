@@ -12,7 +12,8 @@
     "client": "npm start --prefix client",
     "dev": "concurrently \"npm run server\" \"npm run client\"",
     "test": "jest",
-    "build": "cd client && npm run build"
+    "build": "cd client && npm run build",
+    "create-default-user": "node src/utils/createDefaultUser.js"
   },
   "repository": {
     "type": "git",
@@ -36,6 +37,7 @@
     "express": "^5.1.0",
     "express-rate-limit": "^7.5.0",
     "google-apis": "^1.0.0",
+    "googleapis": "^148.0.0",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.13.2",

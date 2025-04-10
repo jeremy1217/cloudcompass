@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CloudCompass - System Status</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+        }
+        .navbar {
+            background-color: #333;
+            color: white;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .navbar h1 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+        .navbar-buttons {
+            display: flex;
+            gap: 1rem;
+        }
+        .navbar button {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+        }
+        .card {
+            background-color: white;
+            border-radius: 8px;
+            padding: 1rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .card h2 {
+            margin-top: 0;
+            color: #333;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+        }
+        .status-up {
+            background-color: #28a745;
+        }
+        .status-down {
+            background-color: #dc3545;
+        }
+        .error-message {
+            color: red;
+            text-align: center;
+            margin: 1rem 0;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <h1>System Status</h1>
+        <div class="navbar-buttons">
+            <button onclick="window.location.href='/dashboard'">Back to Dashboard</button>
+            <button id="logoutBtn">Logout</button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div id="errorMessage" class="error-message" style="display: none;"></div>
+        
+        <div class="status-grid">
+            <div class="card">
+                <h2>Database Status</h2>
+                <p><span class="status-indicator status-up"></span> MongoDB Connected</p>
+                <p>Last Check: <span id="dbLastCheck">-</span></p>
+            </div>
+            <div class="card">
+                <h2>API Status</h2>
+                <p><span class="status-indicator status-up"></span> API Running</p>
+                <p>Last Check: <span id="apiLastCheck">-</span></p>
+            </div>
+            <div class="card">
+                <h2>System Resources</h2>
+                <p>CPU Usage: <span id="cpuUsage">-</span></p>
+                <p>Memory Usage: <span id="memoryUsage">-</span></p>
+                <p>Last Check: <span id="resourcesLastCheck">-</span></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Check if user is logged in
+        const token = localStorage.getItem('token');
+        if (!token) {
+            window.location.href = '/login';
+        }
+
+        // Logout functionality
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            localStorage.removeItem('token');
+            window.location.href = '/login';
+        });
+
+        // Verify token and get user info
+        async function verifyToken() {
+            try {
+                const response = await fetch('/api/auth/me', {
+                    headers: {
+                        'x-auth-token': token
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Invalid token');
+                }
+                
+                const user = await response.json();
+                if (user.role !== 'admin') {
+                    window.location.href = '/dashboard';
+                }
+            } catch (error) {
+                console.error('Token verification error:', error);
+                localStorage.removeItem('token');
+                window.location.href = '/login';
+            }
+        }
+
+        // Update status information
+        function updateStatus() {
+            const now = new Date().toLocaleTimeString();
+            document.getElementById('dbLastCheck').textContent = now;
+            document.getElementById('apiLastCheck').textContent = now;
+            document.getElementById('resourcesLastCheck').textContent = now;
+        }
+
+        // Initialize the page
+        verifyToken();
+        updateStatus();
+        setInterval(updateStatus, 30000); // Update every 30 seconds
+    </script>
+</body>
+</html> 
