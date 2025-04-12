@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CloudCompass - Cloud Resources</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.css" rel="stylesheet">
+    <style>
+        .resource-card {
+            margin-bottom: 1rem;
+        }
+        .metric-chart {
+            height: 300px;
+            margin-bottom: 1rem;
+        }
+        .workload-badge {
+            margin-right: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">Cloud Resources</a>
+            <div class="navbar-nav">
+                <a class="nav-link" href="/dashboard">Back to Dashboard</a>
+                <button class="btn btn-danger" id="logoutBtn">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Cloud Resource Overview</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row" id="resourceOverview">
+                            <!-- Resource cards will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Resource Metrics</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="resourceMetricsChart" class="metric-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Cost Analysis</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="costAnalysisChart" class="metric-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Workload Classification</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="card-title mb-0">Resource Type</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="computeIntensive" class="mb-3">
+                                            <h6>Compute Intensive</h6>
+                                            <ul class="list-group"></ul>
+                                        </div>
+                                        <div id="storageIntensive" class="mb-3">
+                                            <h6>Storage Intensive</h6>
+                                            <ul class="list-group"></ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="card-title mb-0">Processing Type</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="batchProcessing" class="mb-3">
+                                            <h6>Batch Processing</h6>
+                                            <ul class="list-group"></ul>
+                                        </div>
+                                        <div id="realTimeServices" class="mb-3">
+                                            <h6>Real-time Services</h6>
+                                            <ul class="list-group"></ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-md-6 mb-3">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="card-title mb-0">Data Locality</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="regional" class="mb-3">
+                                            <h6>Regional</h6>
+                                            <ul class="list-group"></ul>
+                                        </div>
+                                        <div id="global" class="mb-3">
+                                            <h6>Global</h6>
+                                            <ul class="list-group"></ul>
+                                        </div>
+                                        <div id="hybrid" class="mb-3">
+                                            <h6>Hybrid</h6>
+                                            <ul class="list-group"></ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="card-title mb-0">Compliance & Regulatory</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="complianceNeeds">
+                                            <ul class="list-group"></ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script>
+    <script>
+        // Check if user is logged in
+        const token = localStorage.getItem('token');
+        if (!token) {
+            window.location.href = '/login';
+        }
+
+        // Logout functionality
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            localStorage.removeItem('token');
+            window.location.href = '/login';
+        });
+
+        // Verify token and get user info
+        async function verifyToken() {
+            try {
+                const response = await fetch('/api/auth/me', {
+                    headers: {
+                        'x-auth-token': token
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Invalid token');
+                }
+                
+                const user = await response.json();
+                if (user.role !== 'admin') {
+                    window.location.href = '/dashboard';
+                }
+            } catch (error) {
+                console.error('Token verification error:', error);
+                localStorage.removeItem('token');
+                window.location.href = '/login';
+            }
+        }
+
+        // Fetch cloud resources
+        async function fetchCloudResources() {
+            try {
+                const response = await fetch('/api/cloud/resources', {
+                    headers: {
+                        'x-auth-token': token
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to fetch cloud resources');
+                }
+                
+                const data = await response.json();
+                updateResourceOverview(data.resources);
+                updateWorkloadClassification(data.classifications);
+            } catch (error) {
+                console.error('Error fetching cloud resources:', error);
+            }
+        }
+
+        // Update resource overview
+        function updateResourceOverview(resources) {
+            const overviewDiv = document.getElementById('resourceOverview');
+            overviewDiv.innerHTML = '';
+
+            // AWS Resources
+            if (resources.aws) {
+                const awsCard = createResourceCard('AWS', resources.aws);
+                overviewDiv.appendChild(awsCard);
+            }
+
+            // Azure Resources
+            if (resources.azure) {
+                const azureCard = createResourceCard('Azure', resources.azure);
+                overviewDiv.appendChild(azureCard);
+            }
+
+            // GCP Resources
+            if (resources.gcp) {
+                const gcpCard = createResourceCard('GCP', resources.gcp);
+                overviewDiv.appendChild(gcpCard);
+            }
+        }
+
+        // Create resource card
+        function createResourceCard(provider, resources) {
+            const card = document.createElement('div');
+            card.className = 'col-md-4';
+            card.innerHTML = `
+                <div class="card resource-card">
+                    <div class="card-header">
+                        <h6 class="card-title mb-0">${provider} Resources</h6>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Compute Instances:</strong> ${resources.ec2?.length || resources.vms?.length || resources.instances?.length || 0}</p>
+                        <p><strong>Storage:</strong> ${resources.s3?.length || resources.storageAccounts?.length || resources.buckets?.length || 0}</p>
+                        <p><strong>Databases:</strong> ${resources.rds?.length || 0}</p>
+                    </div>
+                </div>
+            `;
+            return card;
+        }
+
+        // Update workload classification
+        function updateWorkloadClassification(classifications) {
+            // Update resource type classifications
+            updateClassificationList('computeIntensive', classifications.computeIntensive);
+            updateClassificationList('storageIntensive', classifications.storageIntensive);
+            
+            // Update processing type classifications
+            updateClassificationList('batchProcessing', classifications.batchProcessing);
+            updateClassificationList('realTimeServices', classifications.realTimeServices);
+            
+            // Update data locality classifications
+            updateClassificationList('regional', classifications.dataLocality.regional);
+            updateClassificationList('global', classifications.dataLocality.global);
+            updateClassificationList('hybrid', classifications.dataLocality.hybrid);
+            
+            // Update compliance classifications
+            updateClassificationList('complianceNeeds', classifications.complianceNeeds);
+        }
+
+        function updateClassificationList(elementId, items) {
+            const list = document.querySelector(`#${elementId} .list-group`);
+            list.innerHTML = '';
+            
+            items.forEach(item => {
+                const li = document.createElement('li');
+                li.className = 'list-group-item';
+                
+                const classifications = item.classification.join(', ');
+                li.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>${item.provider}</strong> - ${item.type}
+                            <br>
+                            <small>${item.name} (${item.region})</small>
+                        </div>
+                        <div>
+                            <span class="badge bg-primary">${classifications}</span>
+                        </div>
+                    </div>
+                `;
+                
+                list.appendChild(li);
+            });
+        }
+
+        // Initialize charts
+        function initializeCharts() {
+            // Resource Metrics Chart
+            new Chart(document.getElementById('resourceMetricsChart'), {
+                type: 'line',
+                data: {
+                    labels: ['CPU', 'Memory', 'Storage', 'Network'],
+                    datasets: [{
+                        label: 'Resource Usage',
+                        data: [65, 45, 30, 80],
+                        borderColor: 'rgb(75, 192, 192)',
+                        tension: 0.1
+                    }]
+                }
+            });
+
+            // Cost Analysis Chart
+            new Chart(document.getElementById('costAnalysisChart'), {
+                type: 'bar',
+                data: {
+                    labels: ['AWS', 'Azure', 'GCP'],
+                    datasets: [{
+                        label: 'Monthly Cost',
+                        data: [1200, 800, 600],
+                        backgroundColor: [
+                            'rgba(255, 99, 132, 0.2)',
+                            'rgba(54, 162, 235, 0.2)',
+                            'rgba(255, 206, 86, 0.2)'
+                        ]
+                    }]
+                }
+            });
+        }
+
+        // Initialize the page
+        verifyToken();
+        fetchCloudResources();
+        initializeCharts();
+    </script>
+</body>
+</html> 

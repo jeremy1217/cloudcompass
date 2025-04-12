@@ -9,75 +9,64 @@ const path = require('path');
 // Load environment variables
 dotenv.config();
 
-// Import API routes
+// Import routes
 const authRoutes = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
+const cloudRoutes = require('./routes/cloud');
 
 // Initialize the app
 const app = express();
-const PORT = process.env.PORT || 3030;
 
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
 
+// Connect to MongoDB
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/cloudcompass', {
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+})
+.then(() => console.log('MongoDB connected'))
+.catch(err => console.error('MongoDB connection error:', err));
+
+// API Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/cloud', cloudRoutes);
+
 // Serve static files from the public directory
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, '../public')));
 
-// Database connection
-const connectDB = async () => {
-  try {
-    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/cloudcompass');
-    console.log('MongoDB connected successfully');
-  } catch (error) {
-    console.error('MongoDB connection error:', error);
-    process.exit(1);
-  }
-};
-
-// Start the application
-const startApp = async () => {
-  // Connect to database
-  await connectDB();
-  
-  // API Routes
-  app.use('/api/auth', authRoutes);
-  app.use('/api/admin', adminRoutes);
-  
-  // Serve login page for both root and /login routes
-  app.get(['/', '/login'], (req, res) => {
-    res.sendFile(path.join(__dirname, '../public/index.html'));
-  });
-
-  // Serve dashboard page
-  app.get('/dashboard', (req, res) => {
-    res.sendFile(path.join(__dirname, '../public/dashboard.html'));
-  });
-
-  // Serve admin pages
-  app.get('/admin/users', (req, res) => {
-    res.sendFile(path.join(__dirname, '../public/admin/users.html'));
-  });
-
-  app.get('/admin/status', (req, res) => {
-    res.sendFile(path.join(__dirname, '../public/admin/status.html'));
-  });
-
-  app.get('/admin/settings', (req, res) => {
-    res.sendFile(path.join(__dirname, '../public/admin/settings.html'));
-  });
-  
-  // Start server
-  app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-  });
-};
-
-// Handle unhandled promise rejections
-process.on('unhandledRejection', (err, promise) => {
-  console.error(`Error: ${err.message}`);
-  process.exit(1);
+// Serve login page for both root and /login routes
+app.get(['/', '/login'], (req, res) => {
+    res.sendFile(path.join(__dirname, '../public/login.html'));
 });
 
-// Start the app
-startApp();
+// Serve dashboard page
+app.get('/dashboard', (req, res) => {
+    res.sendFile(path.join(__dirname, '../public/dashboard.html'));
+});
+
+// Serve admin pages
+app.get('/admin/users', (req, res) => {
+    res.sendFile(path.join(__dirname, '../public/admin/users.html'));
+});
+
+app.get('/admin/status', (req, res) => {
+    res.sendFile(path.join(__dirname, '../public/admin/status.html'));
+});
+
+app.get('/admin/settings', (req, res) => {
+    res.sendFile(path.join(__dirname, '../public/admin/settings.html'));
+});
+
+// Serve cloud resources page
+app.get('/admin/cloud', (req, res) => {
+    res.sendFile(path.join(__dirname, '../public/admin/cloud.html'));
+});
+
+// Start server
+const PORT = process.env.PORT || 3030;
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+});

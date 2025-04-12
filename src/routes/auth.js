@@ -1,9 +1,11 @@
 // src/routes/auth.js
 const express = require('express');
 const router = express.Router();
-const User = require('../database/models/User');
-const { auth, admin } = require('../middleware/auth');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+const { auth, admin } = require('../middleware/auth');
+const User = require('../database/models/User');
 const sendEmail = require('../utils/sendEmail');
 
 /**
@@ -274,7 +276,7 @@ router.put('/reset-password/:resetToken', async (req, res) => {
  * @desc    Get all users
  * @access  Admin
  */
-router.get('/users', [auth, admin], async (req, res) => {
+router.get('/users', auth, admin, async (req, res) => {
   try {
     const users = await User.find().select('-password');
     res.json(users);
@@ -289,7 +291,7 @@ router.get('/users', [auth, admin], async (req, res) => {
  * @desc    Create new user (admin only)
  * @access  Admin
  */
-router.post('/create-user', [auth, admin], async (req, res) => {
+router.post('/create-user', auth, admin, async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
 
